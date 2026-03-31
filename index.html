@@ -226,6 +226,55 @@
             box-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
         }
 
+        .sidebar {
+            will-change: width;
+        }
+
+        .sidebar.collapsed {
+            width: 88px;
+        }
+
+        .sidebar.collapsed .user-info,
+        .sidebar.collapsed .search-box,
+        .sidebar.collapsed .chat-info,
+        .sidebar.collapsed .obshiy-badge {
+            display: none;
+        }
+
+        .sidebar.collapsed .chat-item {
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .sidebar.collapsed .chat-avatar {
+            margin-right: 0;
+        }
+
+        .sidebar.collapsed .chat-list {
+            padding-top: 12px;
+        }
+
+        .sidebar-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: transform 0.2s, background 0.2s;
+            color: white;
+        }
+
+        .sidebar-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.08);
+        }
+
+        body.theme-dark .sidebar-toggle {
+            background: rgba(16, 22, 45, 0.35);
+        }
+
         .sidebar-header {
             display: flex;
             justify-content: space-between;
@@ -1910,6 +1959,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="sidebar-header">
                 <h1>💬 FlockTalk</h1>
                 <div class="header-icons">
+                    <button type="button" class="sidebar-toggle" id="sidebarToggleBtn" title="Yopish/Ochish">☰</button>
                     <button type="button" class="icon-btn" id="logoutBtn" title="Chiqish">🚪</button>
                 </div>
             </div>
@@ -1974,6 +2024,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const appContainer = document.getElementById('appContainer');
         const loginForm = document.getElementById('loginForm');
         const logoutBtn = document.getElementById('logoutBtn');
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
         const searchInput = document.getElementById('searchInput');
         const chatList = document.getElementById('chatList');
         const chatWindow = document.getElementById('chatWindow');
@@ -1983,6 +2034,70 @@ document.addEventListener("DOMContentLoaded", () => {
         const connectionStatus = document.getElementById('connectionStatus');
         const typingIndicator = document.getElementById('typingIndicator');
         const isMobileView = () => window.matchMedia('(max-width: 768px)').matches;
+        const sidebarEl = document.querySelector('aside.sidebar');
+
+        function setSidebarCollapsed(collapsed) {
+            if (!sidebarEl) return;
+            sidebarEl.classList.toggle('collapsed', !!collapsed);
+            try {
+                localStorage.setItem('flocktalkSidebarCollapsed', collapsed ? '1' : '0');
+            } catch {}
+        }
+
+        function getSidebarCollapsed() {
+            try {
+                return localStorage.getItem('flocktalkSidebarCollapsed') === '1';
+            } catch {
+                return false;
+            }
+        }
+
+        if (sidebarToggleBtn) {
+            sidebarToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setSidebarCollapsed(!sidebarEl?.classList.contains('collapsed'));
+            });
+        }
+
+        if (!isMobileView()) {
+            setSidebarCollapsed(getSidebarCollapsed());
+        }
+
+        function saveKnownUsers(users) {
+            try {
+                const known = JSON.parse(localStorage.getItem('flocktalkKnownUsers') || '{}');
+                users.forEach((u) => {
+                    if (!u?.socketId) return;
+                    known[u.socketId] = { socketId: u.socketId, firstName: u.firstName, lastName: u.lastName, phone: u.phone, avatar: u.avatar };
+                });
+                localStorage.setItem('flocktalkKnownUsers', JSON.stringify(known));
+            } catch {}
+        }
+
+        function getKnownUsers() {
+            try {
+                return JSON.parse(localStorage.getItem('flocktalkKnownUsers') || '{}');
+            } catch {
+                return {};
+            }
+        }
+
+        function rememberRecentChat(socketId) {
+            if (!socketId || socketId === 'obshiy') return;
+            try {
+                const list = JSON.parse(localStorage.getItem('flocktalkRecentChats') || '[]');
+                const next = [socketId, ...list.filter((id) => id !== socketId)].slice(0, 20);
+                localStorage.setItem('flocktalkRecentChats', JSON.stringify(next));
+            } catch {}
+        }
+
+        function getRecentChats() {
+            try {
+                return JSON.parse(localStorage.getItem('flocktalkRecentChats') || '[]');
+            } catch {
+                return [];
+            }
+        }
 
         function showConnectionStatus(message, isConnected) {
             connectionStatus.textContent = message;
@@ -2021,6 +2136,7 @@ document.addEventListener("DOMContentLoaded", () => {
             socket.on('users_updated', (users) => {
                 if (currentUser) {
                     allUsers = users.filter(u => u.phone !== currentUser.phone);
+                    saveKnownUsers(allUsers);
                     renderUserList(searchInput.value);
                 }
             });
@@ -2029,6 +2145,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 if ((selectedUser?.isObshiy && message.receiverId === "obshiy") ||
                     (selectedUser?.socketId === message.senderId)) {
                     renderChatWindow();
+                }
+                if (message?.receiverId && message.receiverId !== "obshiy") {
+                    rememberRecentChat(message.senderId);
                 }
             });
             
@@ -2129,7 +2248,18 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!chatList) return;
             chatList.innerHTML = '';
             
-            let usersWithObshiy = [OBSHIY_USER, ...allUsers];
+            const known = getKnownUsers();
+            const recent = getRecentChats()
+                .map((id) => allUsers.find((u) => u.socketId === id) || known[id])
+                .filter(Boolean);
+
+            const byId = new Map();
+            [OBSHIY_USER, ...recent, ...allUsers].forEach((u) => {
+                if (!u) return;
+                byId.set(u.socketId, u);
+            });
+
+            let usersWithObshiy = Array.from(byId.values());
             
             const filtered = usersWithObshiy.filter(u =>
                 (u.isObshiy ||
@@ -2172,6 +2302,9 @@ document.addEventListener("DOMContentLoaded", () => {
         function selectUser(user) {
             selectedUser = user;
             renderUserList(searchInput.value);
+            if (!user.isObshiy) {
+                rememberRecentChat(user.socketId);
+            }
             if (isMobileView()) {
                 appContainer.classList.add('mobile-chat-active');
             }
