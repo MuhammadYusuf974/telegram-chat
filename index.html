@@ -634,12 +634,14 @@
         }
 
         .message-image {
-            width: clamp(150px, 42vw, 240px);
-            aspect-ratio: 1 / 1;
-            border-radius: 12px;
+            width: min(280px, 72vw);
+            max-width: 100%;
+            aspect-ratio: 4 / 3;
+            border-radius: 16px;
             display: block;
             margin-bottom: 8px;
             object-fit: cover;
+            background: rgba(0, 0, 0, 0.06);
         }
 
         .message-timestamp {
@@ -1092,6 +1094,10 @@
     position: relative;
     animation: stickerPop 1.25s ease-in-out infinite;
     transform-origin: 50% 60%;
+    font-size: 30px;
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(102,126,234,0.10);
 }
 
 .animated-sticker.s2 { animation-delay: 0.12s; }
@@ -1108,6 +1114,20 @@
     height: 1px;
     background: rgba(102,126,234,0.25);
     margin: 6px 0;
+}
+
+.sticker-label {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    color: #667eea;
+    padding: 2px 4px;
+    text-transform: uppercase;
+}
+
+body.theme-dark .sticker-label {
+    color: #b8c5ff;
 }
 
 body.theme-dark .sticker-divider {
@@ -2247,8 +2267,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="emoji-picker-container">
                             <button type="button" class="emoji-btn" id="emojiBtn">😀</button>
                             <div class="emoji-grid" id="emojiGrid">
+                                <div class="sticker-label">Animated</div>
                                 ${animatedStickers.map(s => `<div class="emoji-item ${s.cls}" data-emoji="${s.emoji}">${s.emoji}</div>`).join('')}
                                 <div class="sticker-divider"></div>
+                                <div class="sticker-label">Stickers</div>
                                 ${emojis.map(emoji => `<div class="emoji-item" data-emoji="${emoji}">${emoji}</div>`).join('')}
                             </div>
                         </div>
