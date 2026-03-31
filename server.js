@@ -10,7 +10,9 @@ const io = socketIO(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
-    }
+    },
+    // Large base64 images can exceed Socket.IO defaults
+    maxHttpBufferSize: 15 * 1024 * 1024
 });
 
 app.use(cors());
