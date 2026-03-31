@@ -633,6 +633,17 @@
             transition: all 0.2s;
         }
 
+        .message-image {
+            max-width: min(260px, 70vw);
+            max-height: 320px;
+            width: auto;
+            height: auto;
+            border-radius: 12px;
+            display: block;
+            margin-bottom: 8px;
+            object-fit: cover;
+        }
+
         .message-timestamp {
             font-size: 12px;
             color: #999;
@@ -1246,6 +1257,27 @@ body.theme-dark .form-group input::placeholder {
         font-size: 18px;
     }
 
+    .emoji-grid {
+        position: fixed;
+        left: 10px;
+        right: 10px;
+        bottom: calc(64px + env(safe-area-inset-bottom));
+        top: auto;
+        width: auto;
+        max-height: min(42vh, 320px);
+        border-radius: 16px;
+        padding: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+        gap: 8px;
+        z-index: 1200;
+    }
+
+    .emoji-item {
+        width: 100%;
+        height: 44px;
+        font-size: 24px;
+    }
+
     .mobile-back-btn {
         display: inline-flex;
         align-items: center;
@@ -1265,6 +1297,13 @@ body.theme-dark .form-group input::placeholder {
     body.theme-dark .mobile-back-btn {
         background: #1d2850;
         color: #eef2ff;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+    .emoji-grid {
+        grid-template-columns: repeat(8, 42px);
+        max-height: 300px;
     }
 }
 </style>
@@ -1385,7 +1424,12 @@ document.addEventListener("DOMContentLoaded", () => {
             '👍', '👎', '👏', '🙌', '🤝', '💪', '❤️', '🧡', '💛', '💚', '💙', '💜',
             '🎉', '🎊', '🎈', '🎁', '🎯', '🎮', '⚽', '🏀', '🎾', '🏐', '⛳', '🚗',
             '🍕', '🍔', '🍟', '🌭', '🍜', '🍱', '☕', '🍵', '🍷', '🍺', '🍻', '🥂',
-            '🌹', '🌻', '🌼', '🌷', '🌸', '💐', '✈️', '🚀', '🚁', '🚂', '🚢', '⛵'
+            '🌹', '🌻', '🌼', '🌷', '🌸', '💐', '✈️', '🚀', '🚁', '🚂', '🚢', '⛵',
+            '🫶', '🤟', '🫡', '🫠', '🥳', '🤩', '😴', '🤯', '🥶', '🥵',
+            '🤓', '🤑', '🤠', '😇', '🤪', '🤫', '🫢', '🤭', '🫣', '🫤',
+            '🫨', '🫥', '😵‍💫', '💯', '🔥', '✨', '🌟', '🎵', '🎶', '📸',
+            '💌', '💥', '🛸', '🧠', '🦾', '🧸', '🪄', '🪩', '🧩', '🕹️',
+            '🎲', '🍓', '🍩', '🍉', '🧃', '🌈', '⛈️', '❄️', '🌙', '☀️'
         ];
 
         const OBSHIY_USER = {
@@ -1617,6 +1661,17 @@ document.addEventListener("DOMContentLoaded", () => {
             return div.innerHTML;
         }
 
+        function renderMessageContent(msg, isObshiy) {
+            const namePrefix = isObshiy && msg.senderId !== socket.id
+                ? `<strong>${escapeHtml(msg.senderName || 'User')}:</strong><br>`
+                : '';
+            const imageHtml = msg.imageData
+                ? `<img class="message-image" src="${msg.imageData}" alt="Image message">`
+                : '';
+            const textHtml = msg.text ? escapeHtml(msg.text) : '';
+            return `${namePrefix}${imageHtml}${textHtml}`;
+        }
+
         function formatTime(timestamp) {
             if (!timestamp) return '';
             const date = new Date(timestamp);
@@ -1678,8 +1733,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         ${messages.map(msg => `
                             <div class="message ${msg.senderId === socket.id ? 'outgoing' : 'incoming'}">
                                 <div class="message-bubble">
-                                    ${isObshiy && msg.senderId !== socket.id ? `<strong>${escapeHtml(msg.senderName || 'User')}:</strong><br>` : ''}
-                                    ${escapeHtml(msg.text)}
+                                    ${renderMessageContent(msg, isObshiy)}
                                 </div>
                                 <div class="message-timestamp">${formatTime(msg.timestamp)}</div>
                             </div>
@@ -1693,6 +1747,8 @@ document.addEventListener("DOMContentLoaded", () => {
                                 ${emojis.map(emoji => `<div class="emoji-item" data-emoji="${emoji}">${emoji}</div>`).join('')}
                             </div>
                         </div>
+                        <button type="button" id="attachBtn" title="Rasm yuborish">📎</button>
+                        <input type="file" id="imageInput" accept="image/*" style="display:none;">
                         <input type="text" id="messageInput" placeholder="Xabar yozing..." autocomplete="off">
                         <button type="button" id="sendBtn">➤</button>
                     </div>
@@ -1720,6 +1776,8 @@ document.addEventListener("DOMContentLoaded", () => {
         function setupInputListeners() {
             const messageInput = document.getElementById('messageInput');
             const sendBtn = document.getElementById('sendBtn');
+            const attachBtn = document.getElementById('attachBtn');
+            const imageInput = document.getElementById('imageInput');
 
             if (messageInput) {
                 messageInput.addEventListener('input', () => {
@@ -1743,6 +1801,60 @@ document.addEventListener("DOMContentLoaded", () => {
             if (sendBtn) {
                 sendBtn.addEventListener('click', sendMessage);
             }
+
+            if (attachBtn && imageInput) {
+                attachBtn.addEventListener('click', () => imageInput.click());
+                imageInput.addEventListener('change', () => {
+                    const file = imageInput.files && imageInput.files[0];
+                    if (file) {
+                        sendImageFile(file);
+                    }
+                    imageInput.value = '';
+                });
+            }
+
+            if (messageInput) {
+                messageInput.addEventListener('paste', (event) => {
+                    const items = event.clipboardData?.items || [];
+                    const imageItem = Array.from(items).find((item) => item.type.startsWith('image/'));
+                    if (!imageItem) return;
+                    event.preventDefault();
+                    const file = imageItem.getAsFile();
+                    if (file) sendImageFile(file);
+                });
+            }
+        }
+
+        function sendImageFile(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            if (file.size > 5 * 1024 * 1024) {
+                showError("Rasm hajmi 5MB dan oshmasin");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const imageData = reader.result;
+                if (typeof imageData === 'string') {
+                    sendImageMessage(imageData);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function sendImageMessage(imageData) {
+            if (!selectedUser || !socket || !imageData) return;
+            const isObshiy = selectedUser && selectedUser.isObshiy;
+            socket.emit('send_message', {
+                text: '',
+                imageData,
+                receiverId: isObshiy ? "obshiy" : selectedUser.socketId,
+                timestamp: new Date().toISOString(),
+                isObshiy
+            }, (response) => {
+                if (response && response.success) {
+                    renderChatWindow();
+                }
+            });
         }
 
         function setupEmojiPicker() {
