@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram - Global Chat</title>
+    <link rel="website icon" href="ChatGPT Image 31 мар. 2026 г., 17_13_16.png">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
 * {
@@ -13,6 +14,7 @@
 }
 
 html, body {
+
     width: 100%;
     height: 100%;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -884,7 +886,7 @@ html, body {
     <div class="app-container" id="appContainer">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h1>Telegram</h1>
+                <h1>Telegram <img src="ChatGPT Image 31 мар. 2026 г., 17_13_16.png" height="50" width="50" alt=""></h1>
                 <div class="header-icons">
                     <button type="button" class="icon-btn" id="logoutBtn" title="Chiqish">🚪</button>
                 </div>
@@ -983,6 +985,8 @@ html, body {
         socket.on('users_updated', (users) => {
             allUsers = users.filter(u => u.phone !== currentUser?.phone);
             renderUserList();
+            allUsers = users.filter(u => u.phone !== currentUser?.phone);
+            allUsers = users; // endi hamma foydalanuvchilar ro'yxatda bo'ladi
         });
 
         // RENDER USER LIST
