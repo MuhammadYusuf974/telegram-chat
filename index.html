@@ -968,6 +968,11 @@
     gap: 10px;
 }
 
+.island-content.wide {
+    width: 360px;
+    min-height: 260px;
+}
+
 .profile-avatar {
     width: 64px;
     height: 64px;
@@ -1024,6 +1029,20 @@
 .status-chip.active {
     outline: 2px solid #2dba7d;
     box-shadow: 0 0 0 2px rgba(45, 186, 125, 0.25);
+}
+
+.devops-glow {
+    background: linear-gradient(90deg, #00d2ff, #7a5cff, #ff4ecd);
+    background-size: 220% 220%;
+    animation: devopsPulse 2.2s linear infinite;
+    color: #fff;
+    font-weight: 800;
+}
+
+@keyframes devopsPulse {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 .task-row {
@@ -1313,6 +1332,11 @@ body.theme-dark .form-group input::placeholder {
         width: min(90vw, 280px);
     }
 
+    .island-content.wide {
+        width: min(94vw, 420px);
+        min-height: 260px;
+    }
+
     .app-container {
         height: 100dvh;
         overflow: hidden;
@@ -1458,11 +1482,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const othersBtn = document.getElementById("othersBtn");
     const islandContent = document.getElementById("islandContent");
     const STATUS_FLOW = ["Member", "Cu-Member", "Silver", "Cu-Silver"];
-    const TASK_LIST = [
-        { id: "task1", label: "Profilni to'ldirish" },
-        { id: "task2", label: "Global chatga 5 xabar yozish" },
-        { id: "task3", label: "1 ta rasm yuborish" },
-        { id: "task4", label: "3 ta emoji yuborish" }
+    const DEVOPS_SECRET = "FlockTalk_DevOps_2026";
+    const TASK_POOL = [
+        { id: "g25", label: "Global chatda 25 ta xabar yubor", check: (s) => s.globalMessages >= 25, progress: (s) => `${Math.min(s.globalMessages, 25)}/25` },
+        { id: "p20", label: "Private chatlarda 20 ta xabar yubor", check: (s) => s.privateMessages >= 20, progress: (s) => `${Math.min(s.privateMessages, 20)}/20` },
+        { id: "img8", label: "8 ta rasm yubor", check: (s) => s.totalImages >= 8, progress: (s) => `${Math.min(s.totalImages, 8)}/8` },
+        { id: "emoji120", label: "120 ta emoji yubor", check: (s) => s.totalEmoji >= 120, progress: (s) => `${Math.min(s.totalEmoji, 120)}/120` },
+        { id: "msg60", label: "Jami 60 ta xabar yubor", check: (s) => s.totalMessages >= 60, progress: (s) => `${Math.min(s.totalMessages, 60)}/60` },
+        { id: "chars900", label: "900 ta belgi yoz", check: (s) => s.totalChars >= 900, progress: (s) => `${Math.min(s.totalChars, 900)}/900` },
+        { id: "both40", label: "Global+Private jami 40 ta xabar", check: (s) => (s.globalMessages + s.privateMessages) >= 40, progress: (s) => `${Math.min(s.globalMessages + s.privateMessages, 40)}/40` },
+        { id: "imgAndText", label: "10 ta xabar + 4 ta rasm", check: (s) => s.totalMessages >= 10 && s.totalImages >= 4, progress: (s) => `${Math.min(s.totalMessages, 10)}/10 • ${Math.min(s.totalImages, 4)}/4` }
     ];
 
     function getActivePhone() {
@@ -1482,6 +1511,26 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("flocktalkProfiles", JSON.stringify(data));
     }
 
+    function getTodayKey() {
+        const now = new Date();
+        return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+    }
+
+    function seededPickTasks(seedText, count = 4) {
+        let seed = 0;
+        for (let i = 0; i < seedText.length; i += 1) {
+            seed = (seed * 31 + seedText.charCodeAt(i)) >>> 0;
+        }
+        const pool = [...TASK_POOL];
+        const selected = [];
+        while (selected.length < count && pool.length > 0) {
+            seed = (1664525 * seed + 1013904223) >>> 0;
+            const idx = seed % pool.length;
+            selected.push(pool.splice(idx, 1)[0]);
+        }
+        return selected.map((task) => task.id);
+    }
+
     function ensureProfile() {
         const profiles = getProfiles();
         const phone = getActivePhone();
@@ -1491,13 +1540,35 @@ document.addEventListener("DOMContentLoaded", () => {
                 name,
                 phone,
                 status: "Member",
-                completedTasks: []
+                dailyTaskDate: "",
+                dailyTasks: [],
+                stats: {
+                    totalMessages: 0,
+                    globalMessages: 0,
+                    privateMessages: 0,
+                    totalImages: 0,
+                    totalEmoji: 0,
+                    totalChars: 0
+                }
             };
-            saveProfiles(profiles);
-        } else {
-            profiles[phone].name = name || profiles[phone].name;
-            saveProfiles(profiles);
         }
+        profiles[phone].name = name || profiles[phone].name;
+        if (!profiles[phone].stats) {
+            profiles[phone].stats = {
+                totalMessages: 0,
+                globalMessages: 0,
+                privateMessages: 0,
+                totalImages: 0,
+                totalEmoji: 0,
+                totalChars: 0
+            };
+        }
+        const todayKey = getTodayKey();
+        if (profiles[phone].dailyTaskDate !== todayKey || !Array.isArray(profiles[phone].dailyTasks) || profiles[phone].dailyTasks.length !== 4) {
+            profiles[phone].dailyTaskDate = todayKey;
+            profiles[phone].dailyTasks = seededPickTasks(`${phone}-${todayKey}`, 4);
+        }
+        saveProfiles(profiles);
         return profiles[phone];
     }
 
@@ -1509,13 +1580,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const chip = document.createElement("span");
         chip.id = "currentStatusBadge";
         chip.className = "obshiy-badge";
+        if (status === "DevOps") {
+            chip.classList.add("devops-glow");
+        }
         chip.textContent = status;
         chip.style.marginLeft = "8px";
         phoneEl.parentElement?.appendChild(chip);
     }
 
-    function getUnlockedStatuses(completedCount) {
-        if (completedCount >= 4) return ["Member", "Cu-Member", "Silver", "Cu-Silver"];
+    function getDailyTaskResult(profile) {
+        const stats = profile.stats || {};
+        const tasks = (profile.dailyTasks || []).map((id) => TASK_POOL.find((task) => task.id === id)).filter(Boolean);
+        const completedCount = tasks.filter((task) => task.check(stats)).length;
+        return { tasks, completedCount };
+    }
+
+    function getUnlockedStatuses(profile) {
+        const { completedCount } = getDailyTaskResult(profile);
+        const stats = profile.stats || {};
+        const hasHardRequirement = stats.totalMessages >= 120 && stats.totalImages >= 12;
+        if (completedCount >= 4 && hasHardRequirement) return ["Member", "Cu-Member", "Silver", "Cu-Silver"];
         if (completedCount >= 3) return ["Member", "Cu-Member", "Silver"];
         if (completedCount >= 2) return ["Member", "Cu-Member"];
         return ["Member"];
@@ -1523,7 +1607,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderContactsPanel() {
         const profile = ensureProfile();
-        const unlocked = getUnlockedStatuses(profile.completedTasks.length);
+        const unlocked = getUnlockedStatuses(profile);
         showContent(`
             <div class="profile-card">
                 <div class="profile-avatar">👤</div>
@@ -1539,7 +1623,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <button class="status-chip" id="devOpsAccessBtn">DevOps</button>
                 </div>
             </div>
-        `);
+        `, true);
 
         islandContent.querySelectorAll(".status-chip[data-status]").forEach((btn) => {
             btn.addEventListener("click", () => {
@@ -1562,54 +1646,58 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderTasksPanel() {
         const profile = ensureProfile();
+        const { tasks, completedCount } = getDailyTaskResult(profile);
+        const hardGate = (profile.stats?.totalMessages || 0) >= 120 && (profile.stats?.totalImages || 0) >= 12;
         showContent(`
             <div class="profile-card">
-                <div class="status-title">Zadaniya (${profile.completedTasks.length}/4)</div>
-                ${TASK_LIST.map((task) => {
-                    const done = profile.completedTasks.includes(task.id);
+                <div class="status-title">Daily zadaniya (${completedCount}/4) • har 24 soatda yangilanadi</div>
+                ${tasks.map((task) => {
+                    const done = task.check(profile.stats || {});
                     return `
                         <div class="task-row">
-                            <div class="task-text">${task.label}</div>
-                            <button class="task-btn" data-task="${task.id}" ${done ? "disabled" : ""}>${done ? "Done" : "Bajarish"}</button>
+                            <div class="task-text">${task.label}<br><small>${task.progress(profile.stats || {})}</small></div>
+                            <button class="task-btn" disabled>${done ? "Done" : "Jarayonda"}</button>
                         </div>
                     `;
                 }).join("")}
+                <div class="status-title">Cu-Silver sharti: 4/4 + 120 xabar + 12 rasm (${hardGate ? "OK" : "Locked"})</div>
             </div>
-        `);
-
-        islandContent.querySelectorAll(".task-btn[data-task]").forEach((btn) => {
-            btn.addEventListener("click", () => {
-                const taskId = btn.getAttribute("data-task");
-                const profiles = getProfiles();
-                const phone = getActivePhone();
-                if (!profiles[phone]) return;
-                if (!profiles[phone].completedTasks.includes(taskId)) {
-                    profiles[phone].completedTasks.push(taskId);
-                    saveProfiles(profiles);
-                }
-                renderTasksPanel();
-            });
-        });
+        `, true);
     }
 
     function renderDevOpsLogin() {
+        const profiles = getProfiles();
+        const activePhone = getActivePhone();
+        const activeName = (document.getElementById("currentUserName")?.textContent || "").trim();
+        const ownerLock = profiles.__ownerLock || null;
+        if (ownerLock && (ownerLock.phone !== activePhone || ownerLock.name !== activeName)) {
+            showContent(`<p>🔒 DevOps faqat owner akkauntidan ochiladi</p>`, true);
+            return;
+        }
+        if (!ownerLock) {
+            profiles.__ownerLock = { phone: activePhone, name: activeName };
+            saveProfiles(profiles);
+        }
+
         showContent(`
             <div class="devops-form">
                 <div class="status-title">DevOps akkauntiga kirish</div>
                 <input id="devName" type="text" placeholder="Ism">
                 <input id="devLastName" type="text" placeholder="Familiya">
                 <input id="devPhone" type="text" placeholder="+998 9999999">
+                <input id="devSecret" type="password" placeholder="Maxfiy kalit">
                 <button class="toggle-btn" id="devLoginBtn">Kirish</button>
             </div>
-        `);
+        `, true);
 
         const devLoginBtn = document.getElementById("devLoginBtn");
         if (!devLoginBtn) return;
         devLoginBtn.addEventListener("click", () => {
             const name = (document.getElementById("devName")?.value || "").trim();
             const lastName = (document.getElementById("devLastName")?.value || "").trim();
-            const phone = (document.getElementById("devPhone")?.value || "").trim();
-            const isValid = name === "Dev_Ops" && lastName === "Number_1" && phone === "+998 9999999";
+            const phone = (document.getElementById("devPhone")?.value || "").replace(/\s+/g, "").trim();
+            const secret = (document.getElementById("devSecret")?.value || "").trim();
+            const isValid = name === "Dev_Ops" && lastName === "Number_1" && phone === "+9989999999" && secret === DEVOPS_SECRET;
             if (!isValid) {
                 showContent(`<p>❌ Ma'lumotlar noto'g'ri</p>`);
                 return;
@@ -1631,7 +1719,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 name: "Dev_Ops Number_1",
                 phone: "+998 9999999",
                 status: "DevOps",
-                completedTasks: TASK_LIST.map((task) => task.id)
+                dailyTaskDate: getTodayKey(),
+                dailyTasks: seededPickTasks(`+998 9999999-${getTodayKey()}`, 4),
+                stats: {
+                    totalMessages: 999,
+                    globalMessages: 999,
+                    privateMessages: 999,
+                    totalImages: 999,
+                    totalEmoji: 999,
+                    totalChars: 9999
+                }
             };
             saveProfiles(profiles);
             updateCurrentStatusChip("DevOps");
@@ -1639,10 +1736,45 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function showContent(html) {
+    function showContent(html, wide = false) {
         islandContent.innerHTML = html;
+        islandContent.classList.toggle("wide", !!wide);
         islandContent.style.display = "flex";
     }
+
+    window.FlockProgress = {
+        recordTextMessage(payload = {}) {
+            const profiles = getProfiles();
+            const phone = getActivePhone();
+            if (!profiles[phone]) return;
+            const profile = profiles[phone];
+            ensureProfile();
+            const text = String(payload.text || "");
+            const emojiCount = (text.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu) || []).length;
+            profile.stats.totalMessages += 1;
+            profile.stats.totalChars += text.length;
+            profile.stats.totalEmoji += emojiCount;
+            if (payload.isObshiy) profile.stats.globalMessages += 1;
+            else profile.stats.privateMessages += 1;
+            saveProfiles(profiles);
+        },
+        recordImageMessage() {
+            const profiles = getProfiles();
+            const phone = getActivePhone();
+            if (!profiles[phone]) return;
+            ensureProfile();
+            profiles[phone].stats.totalImages += 1;
+            saveProfiles(profiles);
+        },
+        recordEmojiPick() {
+            const profiles = getProfiles();
+            const phone = getActivePhone();
+            if (!profiles[phone]) return;
+            ensureProfile();
+            profiles[phone].stats.totalEmoji += 1;
+            saveProfiles(profiles);
+        }
+    };
 
     function applyTheme(theme) {
         const mode = theme === "dark" ? "theme-dark" : "theme-light";
@@ -2180,6 +2312,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 isObshiy
             }, (response) => {
                 if (response && response.success) {
+                    if (window.FlockProgress?.recordImageMessage) {
+                        window.FlockProgress.recordImageMessage();
+                    }
                     renderChatWindow();
                 }
             });
@@ -2208,6 +2343,9 @@ document.addEventListener("DOMContentLoaded", () => {
                             messageInput.value += emoji;
                             messageInput.focus();
                         }
+                        if (window.FlockProgress?.recordEmojiPick) {
+                            window.FlockProgress.recordEmojiPick();
+                        }
                         emojiGrid.classList.remove('active');
                     });
                 });
@@ -2230,6 +2368,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 isObshiy
             }, (response) => {
                 if (response && response.success) {
+                    if (window.FlockProgress?.recordTextMessage) {
+                        window.FlockProgress.recordTextMessage({ text, isObshiy });
+                    }
                     messageInput.value = '';
                     messageInput.focus();
                     renderChatWindow();
