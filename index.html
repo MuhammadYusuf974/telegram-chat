@@ -634,10 +634,8 @@
         }
 
         .message-image {
-            max-width: min(260px, 70vw);
-            max-height: 320px;
-            width: auto;
-            height: auto;
+            width: clamp(150px, 42vw, 240px);
+            aspect-ratio: 1 / 1;
             border-radius: 12px;
             display: block;
             margin-bottom: 8px;
@@ -1264,18 +1262,26 @@ body.theme-dark .form-group input::placeholder {
         bottom: calc(64px + env(safe-area-inset-bottom));
         top: auto;
         width: auto;
-        max-height: min(42vh, 320px);
+        max-height: 55vh;
+        min-height: 220px;
         border-radius: 16px;
-        padding: 10px;
-        grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+        padding: 12px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 8px;
         z-index: 1200;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .emoji-item {
         width: 100%;
-        height: 44px;
-        font-size: 24px;
+        height: 46px;
+        font-size: 25px;
+        line-height: 1;
+    }
+
+    .emoji-grid.active {
+        display: grid;
     }
 
     .mobile-back-btn {
@@ -1297,6 +1303,13 @@ body.theme-dark .form-group input::placeholder {
     body.theme-dark .mobile-back-btn {
         background: #1d2850;
         color: #eef2ff;
+    }
+}
+
+@media (max-width: 420px) {
+    .emoji-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        max-height: 58vh;
     }
 }
 
