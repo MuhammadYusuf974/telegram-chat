@@ -1088,6 +1088,32 @@
     text-decoration: underline;
 }
 
+.animated-sticker {
+    position: relative;
+    animation: stickerPop 1.25s ease-in-out infinite;
+    transform-origin: 50% 60%;
+}
+
+.animated-sticker.s2 { animation-delay: 0.12s; }
+.animated-sticker.s3 { animation-delay: 0.24s; }
+.animated-sticker.s4 { animation-delay: 0.36s; }
+
+@keyframes stickerPop {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-2px) scale(1.12); }
+}
+
+.sticker-divider {
+    grid-column: 1 / -1;
+    height: 1px;
+    background: rgba(102,126,234,0.25);
+    margin: 6px 0;
+}
+
+body.theme-dark .sticker-divider {
+    background: rgba(142, 163, 255, 0.25);
+}
+
 .devops-form {
     display: flex;
     flex-direction: column;
@@ -1902,6 +1928,13 @@ document.addEventListener("DOMContentLoaded", () => {
             '🎲', '🍓', '🍩', '🍉', '🧃', '🌈', '⛈️', '❄️', '🌙', '☀️'
         ];
 
+        const animatedStickers = [
+            { emoji: "💖", cls: "animated-sticker s1" },
+            { emoji: "🔥", cls: "animated-sticker s2" },
+            { emoji: "✨", cls: "animated-sticker s3" },
+            { emoji: "🎉", cls: "animated-sticker s4" }
+        ];
+
         const OBSHIY_USER = {
             socketId: "obshiy",
             firstName: "Obshiy",
@@ -2201,7 +2234,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <div class="messages" id="messagesContainer">
                         ${messages.map(msg => `
-                            <div class="message ${msg.senderId === socket.id ? 'outgoing' : 'incoming'}">
+                            <div class="message ${msg.senderId === socket.id ? 'outgoing' : 'incoming'}" ${isObshiy && msg.senderId !== socket.id ? `data-sender-id="${escapeHtml(msg.senderId || '')}"` : ''}>
                                 <div class="message-bubble">
                                     ${renderMessageContent(msg, isObshiy)}
                                 </div>
@@ -2214,6 +2247,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="emoji-picker-container">
                             <button type="button" class="emoji-btn" id="emojiBtn">😀</button>
                             <div class="emoji-grid" id="emojiGrid">
+                                ${animatedStickers.map(s => `<div class="emoji-item ${s.cls}" data-emoji="${s.emoji}">${s.emoji}</div>`).join('')}
+                                <div class="sticker-divider"></div>
                                 ${emojis.map(emoji => `<div class="emoji-item" data-emoji="${emoji}">${emoji}</div>`).join('')}
                             </div>
                         </div>
@@ -2240,9 +2275,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 const target = event.target;
                 if (!(target instanceof HTMLElement)) return;
                 const chip = target.closest('.sender-chip');
-                if (!chip) return;
+                const msgEl = target.closest('.message[data-sender-id]');
+                if (!chip && !msgEl) return;
                 event.stopPropagation();
-                const senderId = chip.getAttribute('data-sender-id') || '';
+                const senderId = chip?.getAttribute('data-sender-id') || msgEl?.getAttribute('data-sender-id') || '';
                 if (!senderId) return;
                 openUserProfileFromSenderId(senderId);
             });
@@ -2393,7 +2429,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.drawImage(img, 0, 0, width, height);
 
                 // JPEG compress to reduce payload. If transparency is important, we can switch to PNG.
-                const out = canvas.toDataURL('image/jpeg', 0.82);
+                const out = canvas.toDataURL('image/jpeg', 0.84);
                 return out || dataUrl;
             } catch {
                 return dataUrl;
@@ -2415,6 +2451,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         window.FlockProgress.recordImageMessage();
                     }
                     renderChatWindow();
+                } else if (response?.error) {
+                    showError(response.error);
                 }
             });
         }
