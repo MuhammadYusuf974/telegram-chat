@@ -880,6 +880,7 @@
 <div class="dynamic-island" id="dynamicIsland">
     <button class="island-btn" id="settingsBtn" title="Settings">⚙️</button>
     <button class="island-btn" id="contactsBtn" title="Contacts">👤</button>
+    <button class="island-btn" id="tasksBtn" title="Tasks">✅</button>
     <button class="island-btn" id="othersBtn" title="Others">⋯</button>
 </div>
 
@@ -959,6 +960,111 @@
 
 .island-option:hover {
     background: rgba(102,126,234,0.1);
+}
+
+.profile-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.profile-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2a44;
+}
+
+.profile-phone {
+    font-size: 13px;
+    color: #63719b;
+}
+
+.status-title {
+    font-size: 12px;
+    color: #7381aa;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.status-chip {
+    border: none;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #fff;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.status-chip.locked {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.status-chip.active {
+    outline: 2px solid #2dba7d;
+    box-shadow: 0 0 0 2px rgba(45, 186, 125, 0.25);
+}
+
+.task-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(102,126,234,0.08);
+}
+
+.task-text {
+    font-size: 12px;
+    color: #223055;
+    font-weight: 600;
+}
+
+.task-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: #fff;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.devops-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.devops-form input {
+    border: 1px solid #d6dcf5;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    outline: none;
 }
 
 /* ========== FULL THEME SUPPORT ========== */
@@ -1125,6 +1231,29 @@ body.theme-dark .island-option:hover {
     background: rgba(142, 163, 255, 0.2);
 }
 
+body.theme-dark .profile-name {
+    color: #eef2ff;
+}
+
+body.theme-dark .profile-phone,
+body.theme-dark .status-title {
+    color: #bac4eb;
+}
+
+body.theme-dark .task-row {
+    background: rgba(142, 163, 255, 0.14);
+}
+
+body.theme-dark .task-text {
+    color: #e2e9ff;
+}
+
+body.theme-dark .devops-form input {
+    background: #111a33;
+    color: #eef2ff;
+    border-color: #2a335a;
+}
+
 body.theme-dark .login-container {
     background: linear-gradient(145deg, #10162d 0%, #1b2446 100%);
 }
@@ -1257,11 +1386,10 @@ body.theme-dark .form-group input::placeholder {
 
     .emoji-grid {
         position: fixed;
-        left: 10px;
-        right: 10px;
-        bottom: calc(64px + env(safe-area-inset-bottom));
-        top: auto;
-        width: auto;
+        left: 50%;
+        top: 52%;
+        transform: translate(-50%, -50%);
+        width: min(92vw, 420px);
         max-height: 55vh;
         min-height: 220px;
         border-radius: 16px;
@@ -1310,6 +1438,7 @@ body.theme-dark .form-group input::placeholder {
     .emoji-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
         max-height: 58vh;
+        width: 94vw;
     }
 }
 
@@ -1325,8 +1454,190 @@ body.theme-dark .form-group input::placeholder {
 document.addEventListener("DOMContentLoaded", () => {
     const settingsBtn = document.getElementById("settingsBtn");
     const contactsBtn = document.getElementById("contactsBtn");
+    const tasksBtn = document.getElementById("tasksBtn");
     const othersBtn = document.getElementById("othersBtn");
     const islandContent = document.getElementById("islandContent");
+    const STATUS_FLOW = ["Member", "Cu-Member", "Silver", "Cu-Silver"];
+    const TASK_LIST = [
+        { id: "task1", label: "Profilni to'ldirish" },
+        { id: "task2", label: "Global chatga 5 xabar yozish" },
+        { id: "task3", label: "1 ta rasm yuborish" },
+        { id: "task4", label: "3 ta emoji yuborish" }
+    ];
+
+    function getActivePhone() {
+        const phoneEl = document.getElementById("currentUserPhone");
+        return (phoneEl?.textContent || "guest").trim() || "guest";
+    }
+
+    function getProfiles() {
+        try {
+            return JSON.parse(localStorage.getItem("flocktalkProfiles") || "{}");
+        } catch {
+            return {};
+        }
+    }
+
+    function saveProfiles(data) {
+        localStorage.setItem("flocktalkProfiles", JSON.stringify(data));
+    }
+
+    function ensureProfile() {
+        const profiles = getProfiles();
+        const phone = getActivePhone();
+        const name = (document.getElementById("currentUserName")?.textContent || "Guest User").trim();
+        if (!profiles[phone]) {
+            profiles[phone] = {
+                name,
+                phone,
+                status: "Member",
+                completedTasks: []
+            };
+            saveProfiles(profiles);
+        } else {
+            profiles[phone].name = name || profiles[phone].name;
+            saveProfiles(profiles);
+        }
+        return profiles[phone];
+    }
+
+    function updateCurrentStatusChip(status) {
+        const phoneEl = document.getElementById("currentUserPhone");
+        if (!phoneEl) return;
+        const oldChip = document.getElementById("currentStatusBadge");
+        if (oldChip) oldChip.remove();
+        const chip = document.createElement("span");
+        chip.id = "currentStatusBadge";
+        chip.className = "obshiy-badge";
+        chip.textContent = status;
+        chip.style.marginLeft = "8px";
+        phoneEl.parentElement?.appendChild(chip);
+    }
+
+    function getUnlockedStatuses(completedCount) {
+        if (completedCount >= 4) return ["Member", "Cu-Member", "Silver", "Cu-Silver"];
+        if (completedCount >= 3) return ["Member", "Cu-Member", "Silver"];
+        if (completedCount >= 2) return ["Member", "Cu-Member"];
+        return ["Member"];
+    }
+
+    function renderContactsPanel() {
+        const profile = ensureProfile();
+        const unlocked = getUnlockedStatuses(profile.completedTasks.length);
+        showContent(`
+            <div class="profile-card">
+                <div class="profile-avatar">👤</div>
+                <div class="profile-name">${profile.name || "Guest User"}</div>
+                <div class="profile-phone">${profile.phone || "No phone"}</div>
+                <div class="status-title">Status</div>
+                <div class="status-grid">
+                    ${STATUS_FLOW.map((status) => {
+                        const isUnlocked = unlocked.includes(status);
+                        const isActive = profile.status === status;
+                        return `<button class="status-chip ${isUnlocked ? "" : "locked"} ${isActive ? "active" : ""}" data-status="${status}" ${isUnlocked ? "" : "disabled"}>${status}</button>`;
+                    }).join("")}
+                    <button class="status-chip" id="devOpsAccessBtn">DevOps</button>
+                </div>
+            </div>
+        `);
+
+        islandContent.querySelectorAll(".status-chip[data-status]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const status = btn.getAttribute("data-status");
+                const profiles = getProfiles();
+                const phone = getActivePhone();
+                if (!profiles[phone]) return;
+                profiles[phone].status = status;
+                saveProfiles(profiles);
+                updateCurrentStatusChip(status);
+                renderContactsPanel();
+            });
+        });
+
+        const devOpsAccessBtn = document.getElementById("devOpsAccessBtn");
+        if (devOpsAccessBtn) {
+            devOpsAccessBtn.addEventListener("click", renderDevOpsLogin);
+        }
+    }
+
+    function renderTasksPanel() {
+        const profile = ensureProfile();
+        showContent(`
+            <div class="profile-card">
+                <div class="status-title">Zadaniya (${profile.completedTasks.length}/4)</div>
+                ${TASK_LIST.map((task) => {
+                    const done = profile.completedTasks.includes(task.id);
+                    return `
+                        <div class="task-row">
+                            <div class="task-text">${task.label}</div>
+                            <button class="task-btn" data-task="${task.id}" ${done ? "disabled" : ""}>${done ? "Done" : "Bajarish"}</button>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+        `);
+
+        islandContent.querySelectorAll(".task-btn[data-task]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const taskId = btn.getAttribute("data-task");
+                const profiles = getProfiles();
+                const phone = getActivePhone();
+                if (!profiles[phone]) return;
+                if (!profiles[phone].completedTasks.includes(taskId)) {
+                    profiles[phone].completedTasks.push(taskId);
+                    saveProfiles(profiles);
+                }
+                renderTasksPanel();
+            });
+        });
+    }
+
+    function renderDevOpsLogin() {
+        showContent(`
+            <div class="devops-form">
+                <div class="status-title">DevOps akkauntiga kirish</div>
+                <input id="devName" type="text" placeholder="Ism">
+                <input id="devLastName" type="text" placeholder="Familiya">
+                <input id="devPhone" type="text" placeholder="+998 9999999">
+                <button class="toggle-btn" id="devLoginBtn">Kirish</button>
+            </div>
+        `);
+
+        const devLoginBtn = document.getElementById("devLoginBtn");
+        if (!devLoginBtn) return;
+        devLoginBtn.addEventListener("click", () => {
+            const name = (document.getElementById("devName")?.value || "").trim();
+            const lastName = (document.getElementById("devLastName")?.value || "").trim();
+            const phone = (document.getElementById("devPhone")?.value || "").trim();
+            const isValid = name === "Dev_Ops" && lastName === "Number_1" && phone === "+998 9999999";
+            if (!isValid) {
+                showContent(`<p>❌ Ma'lumotlar noto'g'ri</p>`);
+                return;
+            }
+
+            const nameEl = document.getElementById("currentUserName");
+            const phoneEl = document.getElementById("currentUserPhone");
+            if (nameEl) nameEl.textContent = "Dev_Ops Number_1";
+            if (phoneEl) phoneEl.textContent = "+998 9999999";
+
+            if (typeof currentUser !== "undefined" && currentUser) {
+                currentUser.firstName = "Dev_Ops";
+                currentUser.lastName = "Number_1";
+                currentUser.phone = "+998 9999999";
+            }
+
+            const profiles = getProfiles();
+            profiles["+998 9999999"] = {
+                name: "Dev_Ops Number_1",
+                phone: "+998 9999999",
+                status: "DevOps",
+                completedTasks: TASK_LIST.map((task) => task.id)
+            };
+            saveProfiles(profiles);
+            updateCurrentStatusChip("DevOps");
+            renderContactsPanel();
+        });
+    }
 
     function showContent(html) {
         islandContent.innerHTML = html;
@@ -1357,7 +1668,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     contactsBtn.addEventListener("click", () => {
-        showContent(`<p>👤 Contacts icon selected</p>`);
+        renderContactsPanel();
+    });
+
+    tasksBtn.addEventListener("click", () => {
+        renderTasksPanel();
     });
 
     othersBtn.addEventListener("click", () => {
