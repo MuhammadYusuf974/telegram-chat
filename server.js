@@ -1,99 +1,129 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
+const socketIO = require('socket.io');
 const path = require('path');
+const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" }
+const io = socketIO(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 });
 
-// Static fayllar
+app.use(cors());
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let users = [];
-let messages = {};
+// ========== DATA STORAGE ==========
+const users = new Map();
+const messages = [];
+const privateMessages = new Map();
 
+// ========== SOCKET.IO ==========
 io.on('connection', (socket) => {
-  console.log('✅ Yangi user ulandi:', socket.id);
+    console.log(`✅ User ulandi: ${socket.id}`);
 
-  socket.on('register', (user) => {
-    console.log('🔥 REGISTER KELDI:', user);
+    socket.on('register', (userData) => {
+        users.set(socket.id, {
+            ...userData,
+            socketId: socket.id,
+            avatar: userData.firstName?.charAt(0).toUpperCase() || '?',
+            isOnline: true
+        });
+        
+        console.log(`📝 ${userData.firstName} ro'yxatdan o'tdi`);
+        socket.emit('register_success');
+        io.emit('users_updated', Array.from(users.values()));
+    });
 
-    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{9,}$/;
-    
-    if (!phoneRegex.test(user.phone)) {
-      socket.emit('error_message', '❌ Telefon raqam noto\'g\'ri');
-      return;
-    }
+    // XABARLARNI OLISH
+    socket.on('get_messages', (data, callback) => {
+        const { receiverId } = data;
 
-    user.phone = user.phone.replace(/\s/g, '');
-    user.socketId = socket.id;
-    user.avatar = user.firstName[0].toUpperCase();
-    
-    const existingUser = users.findIndex(u => u.phone === user.phone);
-    
-    if (existingUser !== -1) {
-      users[existingUser] = { ...users[existingUser], ...user };
-      console.log('👤 MAVJUD USER:', user.firstName);
-    } else {
-      users.push(user);
-      console.log('👤 YANGI USER:', user.firstName);
-    }
-    
-    io.emit('users_updated', users);
-    socket.emit('register_success', { message: 'OK' });
-  });
+        if (receiverId === "obshiy") {
+            const globalMessages = messages.filter(msg => msg.receiverId === "obshiy");
+            if (callback) callback(globalMessages);
+        } else {
+            const senderId = socket.id;
+            const key1 = `${senderId}-${receiverId}`;
+            const key2 = `${receiverId}-${senderId}`;
+            const privateChat = privateMessages.get(key1) || privateMessages.get(key2) || [];
+            if (callback) callback(privateChat);
+        }
+    });
 
-  socket.on('get_messages', ({ receiverId }, callback) => {
-    const key = [socket.id, receiverId].sort().join('-');
-    callback(messages[key] || []);
-  });
+    // XABAR JO'NATISH
+    socket.on('send_message', (data, callback) => {
+        const { text, receiverId, timestamp, isObshiy } = data;
+        const sender = users.get(socket.id);
 
-  socket.on('send_message', (data) => {
-    const key = [socket.id, data.receiverId].sort().join('-');
-    
-    const message = {
-      senderId: socket.id,
-      text: data.text,
-      time: new Date().toLocaleTimeString('uz-UZ', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      timestamp: Date.now()
-    };
-    
-    if (!messages[key]) messages[key] = [];
-    messages[key].push(message);
-    
-    console.log(`💬 Xabar: ${data.text}`);
-    
-    io.to(data.receiverId).emit('receive_message', message);
-    socket.emit('message_sent', message);
-  });
+        if (!sender) {
+            if (callback) callback({ success: false, error: 'User topilmadi' });
+            return;
+        }
 
-  socket.on('disconnect', () => {
-    users = users.filter(u => u.socketId !== socket.id);
-    io.emit('users_updated', users);
-    console.log('❌ User chiqdi:', socket.id);
-  });
+        const message = {
+            senderId: socket.id,
+            senderName: `${sender.firstName} ${sender.lastName}`,
+            text: text,
+            timestamp: new Date().toISOString(),
+            receiverId: isObshiy ? "obshiy" : receiverId
+        };
+
+        if (isObshiy || receiverId === "obshiy") {
+            messages.push(message);
+            console.log(`🌍 GLOBAL: ${sender.firstName}: ${text}`);
+            io.emit('receive_message', message);
+            io.emit('message_sent');
+        } else {
+            const key = `${socket.id}-${receiverId}`;
+            if (!privateMessages.has(key)) {
+                privateMessages.set(key, []);
+            }
+            privateMessages.get(key).push(message);
+            console.log(`💬 PRIVATE: ${sender.firstName} -> ${users.get(receiverId)?.firstName}: ${text}`);
+            
+            socket.emit('receive_message', message);
+            io.to(receiverId).emit('receive_message', message);
+            io.to(receiverId).emit('message_sent');
+        }
+
+        if (callback) callback({ success: true });
+    });
+
+    // TYPING
+    socket.on('typing', (data) => {
+        const { receiverId } = data;
+        const sender = users.get(socket.id);
+
+        if (receiverId === "obshiy") {
+            io.emit('user_typing', { senderId: socket.id });
+        } else {
+            io.to(receiverId).emit('user_typing', { senderId: socket.id });
+        }
+    });
+
+    socket.on('stop_typing', (data) => {
+        // Handle stop typing
+    });
+
+    // DISCONNECT
+    socket.on('disconnect', () => {
+        const user = users.get(socket.id);
+        if (user) {
+            console.log(`❌ ${user.firstName} chiqdi`);
+            users.delete(socket.id);
+            io.emit('users_updated', Array.from(users.values()));
+        }
+    });
 });
 
-app.get('/status', (req, res) => {
-  res.json({
-    status: 'online',
-    users: users.length,
-    messages: Object.keys(messages).reduce((sum, key) => sum + messages[key].length, 0)
-  });
-});
-
-const PORT = 3000;
+// ========== HTTP SERVER ==========
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`
-  🚀 SERVER ISHGA TUSHDI!
-  📡 PORT: ${PORT}
-  🌐 LOKAL: http://localhost:${PORT}
-  📱 TELEFON: http://[KOMPYUTER_IP]:${PORT}
-  `);
+    console.log(`🚀 Server ${PORT}-portda ishlamoqda...`);
+    console.log(`📍 http://localhost:${PORT}`);
 });
