@@ -1072,6 +1072,22 @@
     font-weight: 700;
 }
 
+.sender-chip {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    text-align: left;
+    font-weight: 800;
+    color: inherit;
+    display: inline;
+}
+
+.sender-chip:hover {
+    text-decoration: underline;
+}
+
 .devops-form {
     display: flex;
     flex-direction: column;
@@ -1681,23 +1697,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
         showContent(`
             <div class="devops-form">
-                <div class="status-title">DevOps akkauntiga kirish</div>
-                <input id="devName" type="text" placeholder="Ism">
-                <input id="devLastName" type="text" placeholder="Familiya">
-                <input id="devPhone" type="text" placeholder="+998 9999999">
+                <div class="status-title">DevOps (owner only)</div>
                 <input id="devSecret" type="password" placeholder="Maxfiy kalit">
-                <button class="toggle-btn" id="devLoginBtn">Kirish</button>
+                <button class="toggle-btn" id="devLoginBtn">DevOps ga kirish</button>
             </div>
         `, true);
 
         const devLoginBtn = document.getElementById("devLoginBtn");
         if (!devLoginBtn) return;
         devLoginBtn.addEventListener("click", () => {
-            const name = (document.getElementById("devName")?.value || "").trim();
-            const lastName = (document.getElementById("devLastName")?.value || "").trim();
-            const phone = (document.getElementById("devPhone")?.value || "").replace(/\s+/g, "").trim();
             const secret = (document.getElementById("devSecret")?.value || "").trim();
-            const isValid = name === "Dev_Ops" && lastName === "Number_1" && phone === "+9989999999" && secret === DEVOPS_SECRET;
+            const isValid = secret === DEVOPS_SECRET;
             if (!isValid) {
                 showContent(`<p>❌ Ma'lumotlar noto'g'ri</p>`);
                 return;
@@ -2123,7 +2133,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         function renderMessageContent(msg, isObshiy) {
             const namePrefix = isObshiy && msg.senderId !== socket.id
-                ? `<strong>${escapeHtml(msg.senderName || 'User')}:</strong><br>`
+                ? `<button type="button" class="sender-chip" data-sender-id="${escapeHtml(msg.senderId || '')}">${escapeHtml(msg.senderName || 'User')}</button><br>`
                 : '';
             const imageHtml = msg.imageData
                 ? `<img class="message-image" src="${msg.imageData}" alt="Image message">`
@@ -2217,8 +2227,67 @@ document.addEventListener("DOMContentLoaded", () => {
                 setupInputListeners();
                 setupEmojiPicker();
                 setupMobileBackButton();
+                setupMessageHeaderActions();
                 scrollToBottom();
             });
+        }
+
+        function setupMessageHeaderActions() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (!messagesContainer) return;
+
+            messagesContainer.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLElement)) return;
+                const chip = target.closest('.sender-chip');
+                if (!chip) return;
+                const senderId = chip.getAttribute('data-sender-id') || '';
+                if (!senderId) return;
+                openUserProfileFromSenderId(senderId);
+            });
+        }
+
+        function openUserProfileFromSenderId(senderId) {
+            const user = allUsers.find((u) => u.socketId === senderId) || null;
+            const displayName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'User';
+            const displayPhone = user?.phone || 'Phone yo‘q';
+            const displayAvatar = user?.avatar || (displayName ? displayName.charAt(0).toUpperCase() : '👤');
+
+            const islandContent = document.getElementById('islandContent');
+            if (!islandContent) return;
+
+            islandContent.classList.add('wide');
+            islandContent.style.display = 'flex';
+            islandContent.innerHTML = `
+                <div class="profile-card">
+                    <div class="profile-avatar">${escapeHtml(displayAvatar)}</div>
+                    <div class="profile-name">${escapeHtml(displayName)}</div>
+                    <div class="profile-phone">${escapeHtml(displayPhone)}</div>
+                    <div style="display:flex; gap:10px; margin-top:6px;">
+                        <button class="toggle-btn" id="profileMessageBtn" title="Message">✉️ Message</button>
+                        <button class="toggle-btn" id="profileCloseBtn" title="Close">✕</button>
+                    </div>
+                </div>
+            `;
+
+            const closeBtn = document.getElementById('profileCloseBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    islandContent.style.display = 'none';
+                });
+            }
+
+            const messageBtn = document.getElementById('profileMessageBtn');
+            if (messageBtn) {
+                messageBtn.addEventListener('click', () => {
+                    if (!user) {
+                        showError("User ro'yxatda yo'q (offline bo'lishi mumkin)");
+                        return;
+                    }
+                    selectUser(user);
+                    islandContent.style.display = 'none';
+                });
+            }
         }
 
         function setupMobileBackButton() {
