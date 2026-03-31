@@ -2241,6 +2241,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!(target instanceof HTMLElement)) return;
                 const chip = target.closest('.sender-chip');
                 if (!chip) return;
+                event.stopPropagation();
                 const senderId = chip.getAttribute('data-sender-id') || '';
                 if (!senderId) return;
                 openUserProfileFromSenderId(senderId);
@@ -2357,17 +2358,46 @@ document.addEventListener("DOMContentLoaded", () => {
         function sendImageFile(file) {
             if (!file || !file.type.startsWith('image/')) return;
             if (file.size > 5 * 1024 * 1024) {
-                showError("Rasm hajmi 5MB dan oshmasin");
-                return;
+                // We'll resize/compress large images client-side to keep Socket.IO payloads reasonable
             }
             const reader = new FileReader();
-            reader.onload = () => {
-                const imageData = reader.result;
-                if (typeof imageData === 'string') {
-                    sendImageMessage(imageData);
-                }
+            reader.onload = async () => {
+                const dataUrl = reader.result;
+                if (typeof dataUrl !== 'string') return;
+                const optimized = await optimizeImageDataUrl(dataUrl);
+                sendImageMessage(optimized);
             };
             reader.readAsDataURL(file);
+        }
+
+        async function optimizeImageDataUrl(dataUrl) {
+            try {
+                const img = new Image();
+                img.src = dataUrl;
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                });
+
+                const maxSide = 1280;
+                let { width, height } = img;
+                const scale = Math.min(1, maxSide / Math.max(width, height));
+                width = Math.max(1, Math.round(width * scale));
+                height = Math.max(1, Math.round(height * scale));
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return dataUrl;
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // JPEG compress to reduce payload. If transparency is important, we can switch to PNG.
+                const out = canvas.toDataURL('image/jpeg', 0.82);
+                return out || dataUrl;
+            } catch {
+                return dataUrl;
+            }
         }
 
         function sendImageMessage(imageData) {
