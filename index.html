@@ -881,8 +881,8 @@
 <style>
 .dynamic-island {
     position: fixed;
-    bottom: 20px;
-    left: 20px;
+    top: 20px;
+    right: 20px;
     display: flex;
     gap: 10px;
     z-index: 1000;
@@ -952,6 +952,7 @@
     background: rgba(102,126,234,0.1);
 }
 
+/* ========== FULL THEME SUPPORT ========== */
 body.theme-light main#chatWindow {
     background: linear-gradient(135deg, #f5f7ff 0%, #f0f4ff 100%);
 }
@@ -970,6 +971,301 @@ body.theme-dark main#chatWindow::before {
     background-image:
         radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.08) 0%, transparent 50%);
+}
+
+body.theme-dark,
+body.theme-dark html {
+    background: #0f1324;
+    color: #e6ebff;
+}
+
+body.theme-dark .app-container {
+    background: #0f1324;
+}
+
+body.theme-dark .sidebar {
+    background: linear-gradient(180deg, #141a32 0%, #10162d 100%);
+    border-right: 1px solid #2a335a;
+}
+
+body.theme-dark .user-info {
+    background: linear-gradient(135deg, #151d38 0%, #10162d 100%);
+    border-bottom: 1px solid #2a335a;
+    color: #b8c1e6;
+}
+
+body.theme-dark .user-info strong {
+    color: #e6ebff;
+}
+
+body.theme-dark .search-box {
+    background: #121932;
+}
+
+body.theme-dark .search-box input {
+    background: #0f152b;
+    color: #e6ebff;
+    border-color: #2a335a;
+}
+
+body.theme-dark .search-box input::placeholder {
+    color: #8d98c7;
+}
+
+body.theme-dark .chat-item:hover {
+    background: linear-gradient(120deg, #1b2547 88%, #25204a 100%);
+}
+
+body.theme-dark .chat-item.active {
+    background: linear-gradient(135deg, #26335f, #352b66);
+}
+
+body.theme-dark .chat-item.obshiy {
+    border-color: #8ea3ff;
+    background: linear-gradient(95deg, #26335f 80%, #3c2f6d 100%);
+}
+
+body.theme-dark .chat-info h3 {
+    color: #eef2ff;
+}
+
+body.theme-dark .chat-info p {
+    color: #aab4de;
+}
+
+body.theme-dark .chat-header {
+    background: linear-gradient(135deg, rgba(20, 28, 54, 0.95) 0%, rgba(16, 22, 45, 0.95) 100%);
+    border-bottom: 1px solid #2a335a;
+}
+
+body.theme-dark .chat-header.obshiy {
+    background: linear-gradient(95deg, #24305a 80%, #352d64 100%);
+    border-bottom: 2px solid #8ea3ff;
+}
+
+body.theme-dark .header-info h2 {
+    color: #eef2ff;
+}
+
+body.theme-dark .header-info p {
+    color: #79e0b2;
+}
+
+body.theme-dark .header-actions button {
+    background: #1c274c;
+    color: #eef2ff;
+}
+
+body.theme-dark .header-actions button:hover {
+    background: #273560;
+}
+
+body.theme-dark .message.incoming .message-bubble {
+    background: #1a2447;
+    color: #e6ebff;
+}
+
+body.theme-dark .message-timestamp {
+    color: #94a1d3;
+}
+
+body.theme-dark .input-area {
+    background: linear-gradient(180deg, #141b35 0%, #10162d 100%);
+    border-top: 1px solid #2a335a;
+}
+
+body.theme-dark .input-area input {
+    background: #0f152b;
+    color: #eef2ff;
+    border-color: #2a335a;
+}
+
+body.theme-dark .input-area input::placeholder {
+    color: #8d98c7;
+}
+
+body.theme-dark .emoji-btn {
+    background: #1c274c;
+    color: #eef2ff;
+}
+
+body.theme-dark .emoji-btn:hover {
+    background: #273560;
+}
+
+body.theme-dark .emoji-grid {
+    background: #131b35;
+    border: 1px solid #2a335a;
+}
+
+body.theme-dark .emoji-item:hover {
+    background: #1f2b53;
+}
+
+body.theme-dark .typing-indicator {
+    background: #1b2548;
+    color: #b9c3e8;
+}
+
+body.theme-dark .island-content {
+    background: rgba(34, 44, 84, 0.98);
+    color: #eef2ff;
+}
+
+body.theme-dark .island-option:hover {
+    background: rgba(142, 163, 255, 0.2);
+}
+
+body.theme-dark .login-container {
+    background: linear-gradient(145deg, #10162d 0%, #1b2446 100%);
+}
+
+body.theme-dark .login-card {
+    background: rgba(21, 29, 56, 0.98);
+    border: 1px solid rgba(142, 163, 255, 0.2);
+}
+
+body.theme-dark .login-header p,
+body.theme-dark .form-group label {
+    color: #c7d1f5;
+}
+
+body.theme-dark .form-group input {
+    background: #0f152b;
+    color: #eef2ff;
+    border-color: #2a335a;
+}
+
+body.theme-dark .form-group input::placeholder {
+    color: #8d98c7;
+}
+
+/* ========== TABLET AND PHONE IMPROVEMENTS ========== */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 320px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dynamic-island {
+        top: 12px;
+        right: 12px;
+        left: auto;
+        bottom: auto;
+        transform: none;
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        backdrop-filter: none;
+    }
+
+    .island-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 20px;
+    }
+
+    .island-content {
+        top: 62px;
+        right: 12px;
+        left: auto;
+        bottom: auto;
+        transform: none;
+        width: min(90vw, 280px);
+    }
+
+    .app-container {
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: 100dvh;
+        max-height: none;
+        border-right: none;
+        border-bottom: none;
+    }
+
+    main#chatWindow {
+        display: none;
+        width: 100%;
+        height: 100dvh;
+    }
+
+    .app-container.mobile-chat-active .sidebar {
+        display: none;
+    }
+
+    .app-container.mobile-chat-active main#chatWindow {
+        display: flex;
+    }
+
+    .messages {
+        padding: 16px 14px;
+    }
+
+    .chat-header {
+        padding: 14px;
+    }
+
+    .chat-avatar-header {
+        width: 42px;
+        height: 42px;
+        margin-right: 10px;
+        font-size: 18px;
+    }
+
+    .header-info h2 {
+        font-size: 15px;
+    }
+
+    .header-info p {
+        font-size: 12px;
+    }
+
+    .message {
+        max-width: 88%;
+    }
+
+    .input-area {
+        padding: 12px 10px calc(12px + env(safe-area-inset-bottom));
+        gap: 8px;
+    }
+
+    .input-area input {
+        padding: 11px 14px;
+        font-size: 14px;
+    }
+
+    .input-area button,
+    .emoji-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+    }
+
+    .mobile-back-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 50%;
+        margin-right: 8px;
+        background: #eef2ff;
+        color: #1b2547;
+        font-size: 18px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    body.theme-dark .mobile-back-btn {
+        background: #1d2850;
+        color: #eef2ff;
+    }
 }
 </style>
 
@@ -1001,14 +1297,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.getElementById("lightModeBtn").addEventListener("click", () => {
             applyTheme("light");
-            islandContent.style.background = "#ffffff";
-            islandContent.style.color = "#222222";
         });
 
         document.getElementById("darkModeBtn").addEventListener("click", () => {
             applyTheme("dark");
-            islandContent.style.background = "#2c2c54";
-            islandContent.style.color = "#ffffff";
         });
     });
 
@@ -1123,6 +1415,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const loginError = document.getElementById('loginError');
         const connectionStatus = document.getElementById('connectionStatus');
         const typingIndicator = document.getElementById('typingIndicator');
+        const isMobileView = () => window.matchMedia('(max-width: 768px)').matches;
 
         function showConnectionStatus(message, isConnected) {
             connectionStatus.textContent = message;
@@ -1138,7 +1431,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         function connectSocket() {
-            socket = io('http://localhost:3000', {
+            socket = io({
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
@@ -1178,7 +1471,9 @@ document.addEventListener("DOMContentLoaded", () => {
             
             socket.on('register_success', () => {
                 console.log('✅ Registratsiya muvaffaqiyatli');
-                selectedUser = OBSHIY_USER;
+                if (!isMobileView()) {
+                    selectedUser = OBSHIY_USER;
+                }
                 renderUserList(searchInput.value);
                 renderChatWindow();
             });
@@ -1240,6 +1535,10 @@ document.addEventListener("DOMContentLoaded", () => {
             
             loginContainer.style.display = 'none';
             appContainer.classList.add('active');
+            if (isMobileView()) {
+                selectedUser = null;
+                appContainer.classList.remove('mobile-chat-active');
+            }
             loginForm.reset();
             
             setTimeout(() => {
@@ -1306,6 +1605,9 @@ document.addEventListener("DOMContentLoaded", () => {
         function selectUser(user) {
             selectedUser = user;
             renderUserList(searchInput.value);
+            if (isMobileView()) {
+                appContainer.classList.add('mobile-chat-active');
+            }
             renderChatWindow();
         }
 
@@ -1355,6 +1657,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 chatWindow.innerHTML = `
                     <div class="chat-header${isObshiy ? ' obshiy' : ''}">
                         <div class="header-left">
+                            <button type="button" class="mobile-back-btn" id="mobileBackBtn" title="Orqaga">←</button>
                             <div class="chat-avatar-header${isObshiy ? ' glow' : ''}">${selectedUser.avatar || selectedUser.firstName?.charAt(0).toUpperCase() || '?'}</div>
                             <div class="header-info">
                                 <h2>
@@ -1397,7 +1700,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 setupInputListeners();
                 setupEmojiPicker();
+                setupMobileBackButton();
                 scrollToBottom();
+            });
+        }
+
+        function setupMobileBackButton() {
+            const mobileBackBtn = document.getElementById('mobileBackBtn');
+            if (!mobileBackBtn) return;
+            if (!isMobileView()) {
+                mobileBackBtn.style.display = 'none';
+                return;
+            }
+            mobileBackBtn.addEventListener('click', () => {
+                appContainer.classList.remove('mobile-chat-active');
             });
         }
 
