@@ -61,7 +61,7 @@ io.on('connection', (socket) => {
 
     // XABAR JO'NATISH
     socket.on('send_message', (data, callback) => {
-        const { text, receiverId, timestamp, isObshiy } = data;
+        const { text, imageData, receiverId, timestamp, isObshiy } = data;
         const sender = users.get(socket.id);
 
         if (!sender) {
@@ -69,17 +69,27 @@ io.on('connection', (socket) => {
             return;
         }
 
+        const cleanText = typeof text === 'string' ? text.trim() : '';
+        const cleanImageData = typeof imageData === 'string' ? imageData : '';
+        const hasImage = cleanImageData.startsWith('data:image/');
+
+        if (!cleanText && !hasImage) {
+            if (callback) callback({ success: false, error: 'Xabar bo\'sh bo\'lmasin' });
+            return;
+        }
+
         const message = {
             senderId: socket.id,
             senderName: `${sender.firstName} ${sender.lastName}`,
-            text: text,
+            text: cleanText,
+            imageData: hasImage ? cleanImageData : '',
             timestamp: new Date().toISOString(),
             receiverId: isObshiy ? "obshiy" : receiverId
         };
 
         if (isObshiy || receiverId === "obshiy") {
             messages.push(message);
-            console.log(`🌍 GLOBAL: ${sender.firstName}: ${text}`);
+            console.log(`🌍 GLOBAL: ${sender.firstName}: ${hasImage ? '[image]' : cleanText}`);
             io.emit('receive_message', message);
             io.emit('message_sent');
         } else {
@@ -88,7 +98,7 @@ io.on('connection', (socket) => {
                 privateMessages.set(key, []);
             }
             privateMessages.get(key).push(message);
-            console.log(`💬 PRIVATE: ${sender.firstName} -> ${users.get(receiverId)?.firstName}: ${text}`);
+            console.log(`💬 PRIVATE: ${sender.firstName} -> ${users.get(receiverId)?.firstName}: ${hasImage ? '[image]' : cleanText}`);
             
             socket.emit('receive_message', message);
             io.to(receiverId).emit('receive_message', message);
